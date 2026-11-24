@@ -35,8 +35,10 @@ type JSRuntime struct {
 	torrFS   *torrfs.TorrFS
 	fuseMgr  *fusefs.Manager
 	mu       sync.Mutex
+	vfs      fs.FS
 
 	pendingHandles []*torrfs.Handle
+	uiPages        map[string]*uiPage
 }
 
 func NewJSRuntime(
@@ -61,6 +63,8 @@ func NewJSRuntime(
 		userSvc:  userSvc,
 		torrFS:   torrFS,
 		fuseMgr:  fusefs.NewManager(),
+		vfs:      vfs,
+		uiPages:  make(map[string]*uiPage),
 	}
 
 	// Системная консоль (глобально)
@@ -81,6 +85,7 @@ func NewJSRuntime(
 	tsObj.Set("torrfs", rt.createTorrFSModule(torrFS, userSvc))
 	tsObj.Set("transcode", rt.createTranscodeModule(transcode, profilesSvc, prober))
 	tsObj.Set("fuse", rt.createFuseModule(rt.fuseMgr))
+	tsObj.Set("ui", rt.createUIModule())
 
 	vm.Set("ts", tsObj)
 

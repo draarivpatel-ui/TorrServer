@@ -222,6 +222,24 @@ func (m *Manager) startPlugin(pluginID string, manifest *Manifest, vfs fs.FS) {
 	}
 
 	rt := NewJSRuntime(pluginID, manifest, vfs, m.registrar, m.db, m.torrMgr, m.userSvc, m.i18n, m.torrFS, m.transcode, m.profiles, m.prober)
+
+	// Статические страницы из манифеста доступны сразу.
+	// Динамические регистрирует service.js через ts.ui.page.
+	if manifest.UI != nil {
+		for _, p := range manifest.UI.Pages {
+			if p.Schema == "" {
+				continue
+			}
+			rt.RegisterUIPage(UIPageInfo{
+				ID:       p.ID,
+				Title:    p.Title,
+				TitleKey: p.TitleKey,
+				Rank:     p.Rank,
+				Icon:     p.Icon,
+			}, p.Schema)
+		}
+	}
+
 	m.runtimes[pluginID] = rt
 
 	m.tasks.Go(func(ctx context.Context) {
@@ -394,6 +412,11 @@ func (m *Manager) ListPlugins() []map[string]any {
 
 		_, isBuiltin := m.builtins[id]
 
+		hasUI := false
+		if rt, ok := m.runtimes[id]; ok {
+			hasUI = rt.HasAnyUIPage()
+		}
+
 		result = append(result, map[string]any{
 			"id":            id,
 			"name":          man.Name,
@@ -401,7 +424,8 @@ func (m *Manager) ListPlugins() []map[string]any {
 			"theme_ui":      man.ThemeUI,
 			"current_theme": id == activeTheme,
 			"enabled":       enabled,
-			"page":          hasRootRoute(man.Routes),
+			"page":          hasRootRoute(man.Routes) || hasUI,
+			"ui":            hasUI,
 			"order":         order,
 			"builtin":       isBuiltin,
 			"icon":          iconURL,
@@ -506,6 +530,9 @@ func (m *Manager) installPluginInternal(zipPath string, update bool) ([]string, 
 		// и запись файлов, и проверку на выход за каталог ниже
 		if !ValidPluginID(manifest.ID) {
 			return installed, fmt.Errorf("manifest in %s has invalid 'id' %q", infoPath, manifest.ID)
+		}
+		if err := manifest.validateUI(); err != nil {
+			return installed, fmt.Errorf("manifest in %s: %w", infoPath, err)
 		}
 
 		if existing, ok := m.pluginExists(manifest.ID); ok {
@@ -887,7 +914,8 @@ func (m *Manager) MenuFor(rank int) []map[string]any {
 	for _, id := range ids {
 		man := m.manifests[id]
 
-		if _, active := m.runtimes[id]; !active {
+		rt, active := m.runtimes[id]
+		if !active {
 			continue
 		}
 
@@ -896,13 +924,30 @@ func (m *Manager) MenuFor(rank int) []map[string]any {
 				continue
 			}
 
+			href := "/plugins/" + id + e.Route
+			view := "page"
+			page := ""
+			if e.Page != "" {
+				if !rt.HasUIPage(e.Page) {
+					log.Warnf("[Plugin:%s] Menu entry references unknown ui page %q", id, e.Page)
+					continue
+				}
+				href = "/plugins/" + id + "/ui/" + neturl.PathEscape(e.Page)
+				view = "schema"
+				page = e.Page
+			}
+
 			entry := map[string]any{
 				"plugin_id":   id,
 				"plugin_name": man.Name,
 				"title":       e.Title,
 				"title_key":   e.TitleKey,
-				"href":        "/plugins/" + id + e.Route,
+				"href":        href,
+				"view":        view,
 				"rank":        e.Rank,
+			}
+			if page != "" {
+				entry["page"] = page
 			}
 			icon := e.Icon
 			if icon == "" {
@@ -916,6 +961,93 @@ func (m *Manager) MenuFor(rank int) []map[string]any {
 	}
 
 	return result
+}
+
+// UIPages возвращает готовые страницы интерфейса плагина.
+// Метаданные из манифеста дополняют зарегистрированные страницы.
+func (m *Manager) UIPages(pluginID string) []UIPageInfo {
+	m.mu.RLock()
+	man := m.manifests[pluginID]
+	rt := m.runtimes[pluginID]
+	m.mu.RUnlock()
+
+	if rt == nil {
+		return nil
+	}
+
+	declared := make(map[string]UIPageInfo)
+	if man != nil && man.UI != nil {
+		for _, p := range man.UI.Pages {
+			declared[p.ID] = UIPageInfo{
+				ID: p.ID, Title: p.Title, TitleKey: p.TitleKey, Rank: p.Rank, Icon: p.Icon,
+			}
+		}
+	}
+
+	registered := rt.UIPages()
+	out := make([]UIPageInfo, 0, len(registered))
+	for _, info := range registered {
+		if base, ok := declared[info.ID]; ok {
+			if info.Title == "" {
+				info.Title = base.Title
+			}
+			if info.TitleKey == "" {
+				info.TitleKey = base.TitleKey
+			}
+			if info.Rank == 0 {
+				info.Rank = base.Rank
+			}
+			if info.Icon == "" {
+				info.Icon = base.Icon
+			}
+		}
+		out = append(out, info)
+	}
+	return out
+}
+
+// UISchema собирает, проверяет и нормализует схему страницы плагина.
+func (m *Manager) UISchema(pluginID, page string, ctx UIContext) ([]byte, error) {
+	m.mu.RLock()
+	man := m.manifests[pluginID]
+	rt := m.runtimes[pluginID]
+	m.mu.RUnlock()
+
+	if man == nil || rt == nil {
+		return nil, ErrUIPageNotFound
+	}
+
+	if man.UI != nil {
+		for _, p := range man.UI.Pages {
+			if p.ID != page || p.Rank <= 0 {
+				continue
+			}
+			if ctx.User == nil || int(ctx.User.Rank) < p.Rank {
+				return nil, ErrUIPageForbidden
+			}
+		}
+	}
+
+	ctx.Page = page
+
+	raw, err := rt.UISchema(page, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, err := normalizeUISchema(pluginID, raw)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrUISchemaInvalid, err)
+	}
+
+	data, err := json.Marshal(doc)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrUISchemaInvalid, err)
+	}
+	if len(data) > maxUISize {
+		return nil, fmt.Errorf("%w: document is too large", ErrUISchemaInvalid)
+	}
+	return data, nil
 }
 
 // IsInstalled проверяет, есть ли плагин в системе (включая встроенные).

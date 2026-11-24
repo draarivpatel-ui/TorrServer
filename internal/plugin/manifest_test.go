@@ -58,3 +58,40 @@ func TestLoadManifestAcceptsNormalID(t *testing.T) {
 		t.Errorf("id = %q, want example-plugin", m.ID)
 	}
 }
+
+// TestManifestRejectsBadUIPages проверяет страницы интерфейса.
+func TestManifestRejectsBadUIPages(t *testing.T) {
+	cases := []string{
+		"ui:\n  version: 1\n  pages:\n    - id: \"../evil\"\n",
+		"ui:\n  version: 1\n  pages:\n    - id: \"a\"\n    - id: \"a\"\n",
+		"ui:\n  version: 1\n  pages:\n    - id: \"a\"\n      schema: \"/etc/passwd\"\n",
+		"ui:\n  version: 2\n",
+	}
+
+	for _, extra := range cases {
+		vfs := fstest.MapFS{
+			"info.yaml": &fstest.MapFile{Data: []byte("id: \"tester\"\nname: \"Tester\"\n" + extra)},
+		}
+		if _, err := LoadManifestFromFS(vfs); err == nil {
+			t.Errorf("manifest must be rejected:\n%s", extra)
+		}
+	}
+}
+
+// TestManifestAcceptsUIPages проверяет корректное описание интерфейса.
+func TestManifestAcceptsUIPages(t *testing.T) {
+	vfs := fstest.MapFS{
+		"info.yaml": &fstest.MapFile{Data: []byte(
+			"id: \"tester\"\nname: \"Tester\"\n" +
+				"menu:\n  - title: \"Page\"\n    page: \"main\"\n" +
+				"ui:\n  version: 1\n  pages:\n    - id: \"main\"\n      schema: \"ui/main.json\"\n")},
+	}
+
+	m, err := LoadManifestFromFS(vfs)
+	if err != nil {
+		t.Fatalf("LoadManifestFromFS failed: %v", err)
+	}
+	if m.UI == nil || len(m.UI.Pages) != 1 || m.UI.Pages[0].ID != "main" {
+		t.Fatalf("unexpected ui pages: %+v", m.UI)
+	}
+}
