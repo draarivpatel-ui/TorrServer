@@ -63,6 +63,7 @@ func NewServer(
 	engine.Use(BodyLimitMiddleware())
 
 	plugRouter := NewPluginsRouter()
+	plugRouter.SetUserService(userSvc)
 
 	s := &Server{
 		cfg:            cfg,
@@ -125,6 +126,7 @@ func (s *Server) probeReason() string {
 // SetPluginManager связывает веб-сервер с менеджером плагинов после инициализации
 func (s *Server) SetPluginManager(pm *plugin.Manager) {
 	s.pluginMgr = pm
+	s.pluginsRouter.SetUISource(pm)
 
 	// Загружаем оба словаря ядра: en и ru
 	enData, enErr := fs.ReadFile(staticFS, "static/lang/en.json")
@@ -146,6 +148,7 @@ func (s *Server) SetPluginManager(pm *plugin.Manager) {
 func (s *Server) registerRoutes() {
 	// Публичные роуты
 	s.router.GET("/i18n.js", s.handleI18nJS)
+	s.router.GET("/i18n.json", s.handleI18nJSON)
 
 	RegisterStaticRoutes(s.router)
 

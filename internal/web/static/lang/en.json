@@ -86,5 +86,15 @@
   "invalid_credentials": "Invalid username or password",
   "server_unreachable": "Server unreachable",
   "forbidden_notice": "Your current account does not have permission to access the admin panel",
-  "session_not_saved": "Could not save the session. Allow cookies for this site and try again."
+  "session_not_saved": "Could not save the session. Allow cookies for this site and try again.",
+  "back": "Back",
+  "loading": "Loading...",
+  "error": "Error",
+  "empty": "Empty",
+  "copy": "Copy",
+  "copied": "Copied",
+  "confirm": "Confirm",
+  "unknown_action": "Unknown action",
+  "modal_not_found": "Dialog not found",
+  "invalid_ui": "Invalid interface"
 }

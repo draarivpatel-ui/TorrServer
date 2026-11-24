@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silo</title>
+    <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/ui.css">
+    <script src="/i18n.js"></script>
+    <script src="/js/ui.js"></script>
+</head>
+<body>
+<div class="ui-page">
+    <header class="topbar ui-bar">
+        <a class="btn btn-secondary btn-sm" id="ui-back" href="/" data-i18n="back">Back</a>
+        <h1 id="ui-title">...</h1>
+    </header>
+    <main class="ui-root" id="ui-root">
+        <p class="hint" data-i18n="loading">Loading...</p>
+    </main>
+</div>
+
+<div class="toast-root" id="ui-toast-root"></div>
+
+<script src="/js/silo-ui.js"></script>
+<script>
+    if (typeof i18n !== 'undefined' && i18n.apply) i18n.apply();
+    SiloUI.start();
+</script>
+</body>
+</html>

@@ -28,3 +28,27 @@ func (s *Server) handleI18nJS(c *gin.Context) {
 
 	c.Data(http.StatusOK, "application/javascript; charset=utf-8", data)
 }
+
+// handleI18nJSON отдаёт переводы клиентам без браузера.
+// Без lang возвращает список языков, с lang - словарь.
+func (s *Server) handleI18nJSON(c *gin.Context) {
+	if s.pluginMgr == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "i18n is not available"})
+		return
+	}
+
+	lang := c.Query("lang")
+	if lang == "" {
+		c.JSON(http.StatusOK, gin.H{"langs": s.pluginMgr.I18n().Langs()})
+		return
+	}
+
+	data, ok := s.pluginMgr.I18n().BuildJSON(lang)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "language not found"})
+		return
+	}
+
+	c.Header("Cache-Control", "no-cache")
+	c.Data(http.StatusOK, "application/json; charset=utf-8", data)
+}
