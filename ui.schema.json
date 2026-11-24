@@ -1,0 +1,390 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://silo.local/schemas/ui.schema.json",
+  "title": "Silo UI document",
+  "description": "Форма документа интерфейса плагина. Смысл компонентов описан в ui.md.",
+  "type": "object",
+  "required": ["version", "type", "children"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "type": { "const": "screen" },
+    "id": { "$ref": "#/$defs/id" },
+    "props": { "$ref": "#/$defs/screenProps" },
+    "actions": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/action" }
+    },
+    "children": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,64}$"
+    },
+    "key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "style": {
+      "type": "string"
+    },
+    "screenProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "title_key": { "$ref": "#/$defs/key" },
+        "title": { "type": "string" },
+        "subtitle_key": { "$ref": "#/$defs/key" },
+        "subtitle": { "type": "string" },
+        "icon": { "type": "string" },
+        "back": { "type": "boolean" }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "section", "form", "row", "column", "divider", "spacer", "modal",
+            "text", "link", "notice", "badge", "progress", "media",
+            "cards", "table", "list", "grid", "card", "player",
+            "field", "button", "button_row"
+          ]
+        },
+        "id": { "$ref": "#/$defs/id" },
+        "props": { "type": "object" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/node" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "field" } }, "required": ["type"] },
+          "then": {
+            "properties": { "props": { "$ref": "#/$defs/fieldProps" } },
+            "required": ["id", "props"]
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "button" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/buttonProps" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "table" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/tableProps" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "list" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/listProps" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "grid" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/gridProps" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "card" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/cardProps" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "text" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/textProps" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "notice" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/noticeProps" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "modal" } }, "required": ["type"] },
+          "then": { "properties": { "props": { "$ref": "#/$defs/modalProps" } }, "required": ["id"] }
+        }
+      ]
+    },
+    "fieldProps": {
+      "type": "object",
+      "required": ["input"],
+      "additionalProperties": true,
+      "properties": {
+        "input": {
+          "enum": ["text", "password", "textarea", "number", "select", "checkbox", "switch", "range", "hidden"]
+        },
+        "label_key": { "$ref": "#/$defs/key" },
+        "label": { "type": "string" },
+        "hint_key": { "$ref": "#/$defs/key" },
+        "hint": { "type": "string" },
+        "placeholder_key": { "$ref": "#/$defs/key" },
+        "placeholder": { "type": "string" },
+        "value": {},
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["value"],
+            "additionalProperties": true,
+            "properties": {
+              "value": {},
+              "label_key": { "$ref": "#/$defs/key" },
+              "label": { "type": "string" }
+            }
+          }
+        },
+        "rows": { "type": "integer", "minimum": 1, "maximum": 200 },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "step": { "type": "number" },
+        "required": { "type": "boolean" },
+        "readonly": { "type": "boolean" },
+        "disabled": { "type": "boolean" },
+        "autocomplete": { "type": "string" },
+        "monospace": { "type": "boolean" }
+      }
+    },
+    "buttonProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "label_key": { "$ref": "#/$defs/key" },
+        "label": { "type": "string" },
+        "action": { "type": "string" },
+        "icon": { "type": "string" },
+        "style": { "enum": ["default", "primary", "secondary", "danger", "success"] },
+        "disabled": { "type": "boolean" }
+      }
+    },
+    "tableProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": true,
+            "properties": {
+              "id": { "type": "string" },
+              "title_key": { "$ref": "#/$defs/key" },
+              "title": { "type": "string" },
+              "align": { "enum": ["start", "center", "end"] },
+              "width": { "enum": ["auto", "sm", "md", "lg"] }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": true,
+            "properties": {
+              "id": { "type": "string" },
+              "cells": { "type": "object" }
+            }
+          }
+        },
+        "source": { "$ref": "#/$defs/source" },
+        "refresh": { "$ref": "#/$defs/refresh" },
+        "empty_key": { "$ref": "#/$defs/key" },
+        "empty": { "type": "string" },
+        "row_actions": { "$ref": "#/$defs/actionsList" }
+      }
+    },
+    "listProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/$defs/item" } },
+        "source": { "$ref": "#/$defs/source" },
+        "refresh": { "$ref": "#/$defs/refresh" },
+        "empty_key": { "$ref": "#/$defs/key" },
+        "empty": { "type": "string" }
+      }
+    },
+    "gridProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "items": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+        "columns": { "enum": ["auto", "2", "3", "4", "6"] },
+        "gap": { "enum": ["sm", "md"] },
+        "source": { "$ref": "#/$defs/source" },
+        "refresh": { "$ref": "#/$defs/refresh" },
+        "empty_key": { "$ref": "#/$defs/key" },
+        "empty": { "type": "string" }
+      }
+    },
+    "cardProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "title_key": { "$ref": "#/$defs/key" },
+        "title": { "type": "string" },
+        "subtitle_key": { "$ref": "#/$defs/key" },
+        "subtitle": { "type": "string" },
+        "poster": { "type": "string" },
+        "badge": { "$ref": "#/$defs/badge" },
+        "meta": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "icon": { "type": "string" },
+              "text_key": { "$ref": "#/$defs/key" },
+              "value": { "type": "string" }
+            }
+          }
+        },
+        "menu": { "$ref": "#/$defs/actionsList" },
+        "action": { "type": "string" }
+      }
+    },
+    "textProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "text_key": { "$ref": "#/$defs/key" },
+        "value": { "type": "string" },
+        "format": { "enum": ["plain", "code", "url"] },
+        "style": { "enum": ["default", "muted", "strong", "success", "danger"] },
+        "copyable": { "type": "boolean" }
+      }
+    },
+    "noticeProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "text_key": { "$ref": "#/$defs/key" },
+        "value": { "type": "string" },
+        "title_key": { "$ref": "#/$defs/key" },
+        "title": { "type": "string" },
+        "style": { "enum": ["info", "success", "warning", "danger"] }
+      }
+    },
+    "modalProps": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "title_key": { "$ref": "#/$defs/key" },
+        "title": { "type": "string" },
+        "size": { "enum": ["sm", "md", "lg"] },
+        "close_key": { "$ref": "#/$defs/key" }
+      }
+    },
+    "badge": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "text_key": { "$ref": "#/$defs/key" },
+        "value": { "type": "string" },
+        "style": { "enum": ["default", "info", "success", "warning", "danger"] }
+      }
+    },
+    "item": {
+      "type": "object",
+      "required": ["id"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "title_key": { "$ref": "#/$defs/key" },
+        "title": { "type": "string" },
+        "subtitle_key": { "$ref": "#/$defs/key" },
+        "subtitle": { "type": "string" },
+        "icon": { "type": "string" },
+        "badge": { "$ref": "#/$defs/badge" },
+        "actions": { "$ref": "#/$defs/actionsList" }
+      }
+    },
+    "actionsList": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action"],
+        "additionalProperties": true,
+        "properties": {
+          "action": { "type": "string" },
+          "label_key": { "$ref": "#/$defs/key" },
+          "label": { "type": "string" },
+          "icon": { "type": "string" },
+          "style": { "enum": ["default", "primary", "secondary", "danger", "success"] },
+          "params": { "type": "object" }
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": ["method", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "method": { "enum": ["GET", "POST"] },
+        "path": { "type": "string" },
+        "query": { "type": "object" }
+      }
+    },
+    "refresh": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interval": { "type": "integer", "minimum": 1000 }
+      }
+    },
+    "confirm": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "title_key": { "$ref": "#/$defs/key" },
+        "title": { "type": "string" },
+        "text_key": { "$ref": "#/$defs/key" },
+        "text": { "type": "string" },
+        "ok_key": { "$ref": "#/$defs/key" },
+        "cancel_key": { "$ref": "#/$defs/key" }
+      }
+    },
+    "action": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["submit", "set", "reload", "open", "close", "navigate"] },
+        "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+        "path": { "type": "string" },
+        "body": {},
+        "query": { "type": "object" },
+        "confirm": { "$ref": "#/$defs/confirm" },
+        "success_key": { "$ref": "#/$defs/key" },
+        "error_key": { "$ref": "#/$defs/key" },
+        "values": { "type": "object" },
+        "modal": { "type": "string" },
+        "href": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "submit" } }, "required": ["type"] },
+          "then": { "required": ["method", "path"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "set" } }, "required": ["type"] },
+          "then": { "required": ["values"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "open" } }, "required": ["type"] },
+          "then": { "required": ["modal"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "close" } }, "required": ["type"] },
+          "then": { "required": ["modal"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "navigate" } }, "required": ["type"] },
+          "then": { "required": ["href"] }
+        }
+      ]
+    }
+  }
+}
