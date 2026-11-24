@@ -520,4 +520,247 @@ ts.i18n.addMany("ru", {
     "showcase_i18n_dynamic_2": "Еще одна динамическая строка (RU)"
 });
 
+// --- 8. UI schema page (ts.ui) --------------------------------
+// The page is a JSON document, not HTML. The core renders it; an
+// Android or console client renders the same document with its own
+// widgets. See ui.md for the element reference.
+//
+// ts.ui.page(id, function (req) { return document; })
+//   req.user  - { id, username, rank, is_banned } or null
+//   req.query - query parameters
+//   req.lang  - requested language
+//
+// The returned document is validated and normalized by the core:
+// node types, ids, action paths and limits.
+
+function uiResult() {
+    var raw = ts.storage.get("showcase_last");
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (e) { return null; }
+}
+
+ts.ui.page("main", function (req) {
+    var info = ts.info;
+    var last = uiResult();
+    var message = ts.storage.get("showcase_message") || "";
+
+    return {
+        version: 1,
+        type: "screen",
+        props: {
+            title_key: "showcase_ui_title",
+            subtitle_key: "showcase_ui_subtitle"
+        },
+        actions: {
+            save: {
+                type: "submit",
+                method: "POST",
+                path: "api/ui-demo",
+                body: { message: "$message", mode: "$mode", enabled: "$enabled" },
+                reload: true
+            },
+            reset: {
+                type: "set",
+                values: { message: "", mode: "append", enabled: false }
+            },
+            open_help: { type: "open", modal: "help" },
+            close_help: { type: "close", modal: "help" }
+        },
+        children: [
+            {
+                type: "notice",
+                props: { style: "info", text_key: "showcase_ui_notice" }
+            },
+            {
+                type: "section",
+                props: { title_key: "showcase_ui_form_title" },
+                children: [
+                    {
+                        type: "field",
+                        id: "message",
+                        props: {
+                            input: "text",
+                            label_key: "showcase_ui_message",
+                            hint_key: "showcase_ui_message_hint",
+                            value: message
+                        }
+                    },
+                    {
+                        type: "field",
+                        id: "mode",
+                        props: {
+                            input: "select",
+                            label_key: "showcase_ui_mode",
+                            value: "append",
+                            options: [
+                                { value: "append", label_key: "showcase_ui_mode_append" },
+                                { value: "replace", label_key: "showcase_ui_mode_replace" },
+                                { value: "none", label_key: "showcase_ui_mode_none" }
+                            ]
+                        }
+                    },
+                    {
+                        type: "field",
+                        id: "enabled",
+                        props: { input: "switch", label_key: "showcase_ui_enabled", value: false }
+                    },
+                    {
+                        type: "button_row",
+                        props: { align: "end" },
+                        children: [
+                            {
+                                type: "button",
+                                props: { label_key: "showcase_ui_help", action: "open_help", style: "secondary" }
+                            },
+                            {
+                                type: "button",
+                                props: { label_key: "showcase_ui_reset", action: "reset", style: "secondary" }
+                            },
+                            {
+                                type: "button",
+                                props: { label_key: "showcase_ui_save", action: "save", style: "primary" }
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                type: "section",
+                props: { title_key: "showcase_ui_result_title" },
+                children: [
+                    last ? {
+                        type: "notice",
+                        id: "demo-result",
+                        props: {
+                            style: "success",
+                            value: last.message + " / " + last.mode + " / " + String(last.enabled)
+                        }
+                    } : {
+                        type: "notice",
+                        id: "demo-result",
+                        props: { style: "info", text_key: "showcase_ui_no_result" }
+                    }
+                ]
+            },
+            {
+                type: "section",
+                props: { title_key: "showcase_ui_info_title" },
+                children: [
+                    {
+                        type: "cards",
+                        props: {
+                            items: [
+                                { id: "version", label_key: "showcase_ui_version", value: info.version },
+                                { id: "os", label_key: "showcase_ui_os", value: info.os + "/" + info.arch },
+                                { id: "cpu", label_key: "showcase_ui_cpu", value: String(info.num_cpu) }
+                            ]
+                        }
+                    },
+                    {
+                        type: "table",
+                        props: {
+                            columns: [
+                                { id: "route", title_key: "showcase_ui_route" },
+                                { id: "kind", title_key: "showcase_ui_kind" }
+                            ],
+                            rows: [
+                                { id: "echo", cells: { route: "POST /api/echo", kind: "ts.web" } },
+                                { id: "demo", cells: { route: "POST /api/ui-demo", kind: "ts.ui" } },
+                                { id: "info", cells: { route: "GET /api/info", kind: "ts.info" } }
+                            ]
+                        }
+                    }
+                ]
+            },
+            {
+                type: "section",
+                props: { title_key: "showcase_ui_grid_title" },
+                children: [
+                    {
+                        type: "grid",
+                        props: {
+                            columns: "3",
+                            items: [
+                                {
+                                    type: "card",
+                                    id: "card-echo",
+                                    props: {
+                                        title_key: "showcase_ui_card_echo",
+                                        subtitle_key: "showcase_ui_card_echo_sub",
+                                        badge: { text_key: "showcase_ui_card_badge", style: "success" },
+                                        meta: [
+                                            { text_key: "showcase_ui_meta_post", value: "POST" },
+                                            { text_key: "showcase_ui_meta_json", value: "JSON" }
+                                        ]
+                                    }
+                                },
+                                {
+                                    type: "card",
+                                    id: "card-form",
+                                    props: {
+                                        title_key: "showcase_ui_card_form",
+                                        subtitle_key: "showcase_ui_card_form_sub",
+                                        badge: { text_key: "showcase_ui_card_badge", style: "info" }
+                                    }
+                                },
+                                {
+                                    type: "card",
+                                    id: "card-core",
+                                    props: {
+                                        title_key: "showcase_ui_card_core",
+                                        subtitle_key: "showcase_ui_card_core_sub"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            {
+                type: "modal",
+                id: "help",
+                props: { title_key: "showcase_ui_help_title", size: "md" },
+                children: [
+                    { type: "text", props: { text_key: "showcase_ui_help_text" } },
+                    {
+                        type: "button_row",
+                        props: { align: "end" },
+                        children: [
+                            {
+                                type: "button",
+                                props: { label_key: "showcase_ui_close", action: "close_help", style: "secondary" }
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    };
+});
+
+// POST /api/ui-demo - цель действия save: сохраняет значения и
+// возвращает ответ, по которому клиент обновит страницу.
+ts.web.post("/api/ui-demo", function (req) {
+    var body = req.body || {};
+    if (typeof body === "string") {
+        try { body = JSON.parse(body); } catch (e) { body = {}; }
+    }
+
+    var message = String(body.message || "");
+    var mode = String(body.mode || "append");
+    var enabled = body.enabled === true;
+
+    ts.storage.set("showcase_message", message);
+    ts.storage.set("showcase_last", JSON.stringify({
+        message: message,
+        mode: mode,
+        enabled: enabled
+    }));
+
+    return {
+        ok: true,
+        toast: { style: "success", text_key: "showcase_ui_saved" }
+    };
+});
+
 console.log("[Showcase] All routes, bus listeners, and i18n strings registered");

@@ -605,6 +605,13 @@ ts.transcode.deleteProfile(userID, created.id);</code></pre>
                     <td><code>- title: "Page"<br>route: "/"<br>rank: 0</code></td>
                 </tr>
                 <tr>
+                    <td><code>ui</code></td>
+                    <td data-i18n="manifest_type_object">object</td>
+                    <td data-i18n="manifest_req_optional">optional</td>
+                    <td data-i18n="manifest_ui_desc">UI schema pages rendered by the core. Each page: id, title_key, rank, schema. A page without schema is registered from service.js via ts.ui.page().</td>
+                    <td><code>ui:<br>  version: 1<br>  pages:<br>    - id: "main"<br>      title_key: "..."</code></td>
+                </tr>
+                <tr>
                     <td><code>events[]</code></td>
                     <td data-i18n="manifest_type_array_strings">array of strings</td>
                     <td data-i18n="manifest_req_recommended">recommended</td>

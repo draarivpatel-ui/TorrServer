@@ -55,6 +55,23 @@ menu:
     route: "/"
     rank: 0
     icon: "/img/ico-showcase.svg"
+  - title: "Schema UI"
+    title_key: "showcase_ui_menu"
+    page: "main"
+    rank: 0
+    icon: "/img/ico-showcase.svg"
+
+# --- UI Pages -------------------------------------------------
+# OPTIONAL. Pages described by a JSON document (see ui.md).
+# The core renders them; the plugin keeps the data and logic.
+# A page without "schema" is registered from service.js via ts.ui.page().
+ui:
+  version: 1
+  pages:
+    - id: "main"
+      title_key: "showcase_ui_title"
+      rank: 0
+      icon: "/img/ico-showcase.svg"
 
 # --- Bus Events -----------------------------------------------
 # WHITELIST of event topics this plugin is allowed to emit and listen to.
@@ -92,6 +109,7 @@ routes:
 
   # ts.web
   - "/api/echo"
+  - "/api/ui-demo"
 
   # ts.bus
   - "/api/emit"

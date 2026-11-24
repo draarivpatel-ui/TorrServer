@@ -199,3 +199,32 @@ func TestExamplePluginDumpRouteInventory(t *testing.T) {
 		t.Logf("  dir     %s -> %s", k, v)
 	}
 }
+
+// TestExamplePluginUIPage проверяет страницу интерфейса примера.
+func TestExamplePluginUIPage(t *testing.T) {
+	rt, _, _, _, _ := newExampleRuntime(t)
+
+	if !rt.HasUIPage("main") {
+		t.Fatal("страница main не зарегистрирована")
+	}
+
+	raw, err := rt.UISchema("main", UIContext{Page: "main"})
+	if err != nil {
+		t.Fatalf("UISchema: %v", err)
+	}
+
+	doc, err := normalizeUISchema("example-plugin", raw)
+	if err != nil {
+		t.Fatalf("normalizeUISchema: %v", err)
+	}
+
+	if doc["type"] != "screen" {
+		t.Errorf("type = %v, want screen", doc["type"])
+	}
+
+	actions := doc["actions"].(map[string]any)
+	save := actions["save"].(map[string]any)
+	if save["path"] != "/plugins/example-plugin/api/ui-demo" {
+		t.Errorf("save path = %v", save["path"])
+	}
+}
